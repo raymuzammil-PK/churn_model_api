@@ -3,23 +3,19 @@ import joblib
 import pandas as pd
 
 app = FastAPI()
+
+@app.get("/")
+def home():
+    return {"message": "Customer Churn Prediction API is running!"}
+
 model = joblib.load("models/xgb_churn.pkl")
 scaler = joblib.load("models/scaler.pkl")
 
-feature_columns = [col for col in scaler.feature_names_in_]
-
 @app.post("/predict")
 def predict(payload: dict):
-    # Converting to DataFrame
-    data = pd.DataFrame([payload])
+    df = pd.DataFrame([payload])
 
-    # Reindexing columns to expected format
-    data = data.reindex(columns=feature_columns)
+    df_scaled = scaler.transform(df)
+    prob = model.predict_proba(df_scaled)[0][1]
 
-    # Applying scaling
-    data_scaled = scaler.transform(data)
-
-    # Prediction
-    prob = model.predict_proba(data_scaled)[0][1]
-
-    return {"probability_of_churn": float(prob)}
+    return {"probability": float(prob)}
